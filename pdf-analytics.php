@@ -7,8 +7,6 @@
  * Author: WPTNF
  * License: GPL v2 or later
  * Text Domain: pdf-analytics
- * Domain Path: /languages
- * Update URI: https://github.com/wptnf/pdf-analytics
  */
 
 // Empêcher l'accès direct
@@ -17,32 +15,27 @@ if (!defined('ABSPATH')) {
 }
 
 // Définir les constantes du plugin
-define('PDF_ANALYTICS_VERSION', '1.0.0');
+define('PDF_ANALYTICS_VERSION', '1.0.1');
 define('PDF_ANALYTICS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PDF_ANALYTICS_PLUGIN_PATH', plugin_dir_path(__FILE__));
 
-// Inclure l'update checker
-require_once PDF_ANALYTICS_PLUGIN_PATH . 'includes/plugin-update-checker.php';
+// TEMPORAIREMENT COMMENTÉ - Inclure l'update checker
+// require_once PDF_ANALYTICS_PLUGIN_PATH . 'includes/plugin-update-checker.php';
 
 // Inclure les fichiers nécessaires
 require_once PDF_ANALYTICS_PLUGIN_PATH . 'includes/functions.php';
 require_once PDF_ANALYTICS_PLUGIN_PATH . 'includes/dashboard.php';
 
-// Initialiser le système de mises à jour
-add_action('init', 'pdf_analytics_init_updater');
-function pdf_analytics_init_updater() {
-    $myUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
-        'https://github.com/wptnf/pdf-analytics/',
-        __FILE__,
-        'pdf-analytics'
-    );
-    
-    // Optionnel : Définir la branche
-    $myUpdateChecker->setBranch('main');
-    
-    // Optionnel : Forcer les vérifications
-    $myUpdateChecker->setCheckPeriod(12); // Heures
-}
+// TEMPORAIREMENT COMMENTÉ - Initialiser le système de mises à jour
+// add_action('init', 'pdf_analytics_init_updater');
+// function pdf_analytics_init_updater() {
+//     $myUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
+//         'https://github.com/wptnf/pdf-analytics/',
+//         __FILE__,
+//         'pdf-analytics'
+//     );
+//     $myUpdateChecker->setBranch('main');
+// }
 
 // Hook d'activation
 register_activation_hook(__FILE__, 'pdf_analytics_activate');
@@ -61,3 +54,4 @@ add_action('plugins_loaded', 'pdf_analytics_load_textdomain');
 function pdf_analytics_load_textdomain() {
     load_plugin_textdomain('pdf-analytics', false, dirname(plugin_basename(__FILE__)) . '/languages');
 }
+?>
