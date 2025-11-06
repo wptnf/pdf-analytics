@@ -3,7 +3,7 @@
  * Plugin Name: PDF Analytics
  * Plugin URI: https://github.com/wptnf/pdf-analytics
  * Description: Track PDF views and downloads with detailed analytics and geolocation
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: WPTNF
  * License: GPL v2 or later
  * Text Domain: pdf-analytics
@@ -61,4 +61,3 @@ add_action('plugins_loaded', 'pdf_analytics_load_textdomain');
 function pdf_analytics_load_textdomain() {
     load_plugin_textdomain('pdf-analytics', false, dirname(plugin_basename(__FILE__)) . '/languages');
 }
-?>

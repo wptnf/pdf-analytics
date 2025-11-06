@@ -66,8 +66,8 @@ function get_visitor_geo_info($ip) {
         );
     }
     
-    // API gratuite pour la géolocalisation (ip-api.com)
-    $api_url = "http://ip-api.com/json/{$ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query";
+    // API gratuite pour la géolocalisation (ip-api.com) - CORRIGÉ EN HTTPS
+    $api_url = "https://ip-api.com/json/{$ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query";
     
     $response = wp_remote_get($api_url, array(
         'timeout' => 5,
@@ -108,11 +108,11 @@ function get_browser_and_os($user_agent) {
     // Détection du navigateur
     if (strpos($user_agent, 'Firefox') !== false) {
         $browser = 'Firefox';
-    } elseif (strpos($user_agent, 'Chrome') !== false && strpos($user_agent, 'Edg') === false) {
+    } elseif (strpos($user_agent, 'Chrome') !== false && strpos($user_agent, 'Edg') === false && strpos($user_agent, 'Edge') === false) {
         $browser = 'Chrome';
     } elseif (strpos($user_agent, 'Safari') !== false && strpos($user_agent, 'Chrome') === false) {
         $browser = 'Safari';
-    } elseif (strpos($user_agent, 'Edg') !== false) {
+    } elseif (strpos($user_agent, 'Edg') !== false || strpos($user_agent, 'Edge') !== false) {
         $browser = 'Edge';
     } elseif (strpos($user_agent, 'Opera') !== false || strpos($user_agent, 'OPR') !== false) {
         $browser = 'Opera';
@@ -123,7 +123,7 @@ function get_browser_and_os($user_agent) {
         $os = 'Windows 10';
     } elseif (strpos($user_agent, 'Windows NT 11') !== false) {
         $os = 'Windows 11';
-    } elseif (strpos($user_agent, 'Mac OS X') !== false) {
+    } elseif (strpos($user_agent, 'Mac OS X') !== false || strpos($user_agent, 'macOS') !== false) {
         $os = 'macOS';
     } elseif (strpos($user_agent, 'Linux') !== false) {
         $os = 'Linux';
@@ -338,7 +338,7 @@ function get_recent_visitors($limit = 20) {
     ");
 }
 
-// Fonction pour récupérer les statistiques globales
+// Fonction pour récupérer les statistiques globales - VERSION CORRIGÉE
 function get_pdf_global_stats() {
     global $wpdb;
     
@@ -389,39 +389,41 @@ function get_pdf_global_stats() {
         $stats['avg_conversion_rate'] = round(array_sum($conversion_rates) / count($conversion_rates), 1);
     }
     
-    // Stats pour aujourd'hui, cette semaine, ce mois
-    $today = date('Y-m-d');
-    $week_ago = date('Y-m-d', strtotime('-7 days'));
-    $month_ago = date('Y-m-d', strtotime('-30 days'));
-    
-    foreach ($posts as $post) {
-        $last_view = get_post_meta($post->ID, 'pdf_last_view', true);
-        $last_download = get_post_meta($post->ID, 'pdf_last_download', true);
-        
-        // Aujourd'hui
-        if ($last_view && date('Y-m-d', strtotime($last_view)) == $today) {
-            $stats['views_today']++;
-        }
-        if ($last_download && date('Y-m-d', strtotime($last_download)) == $today) {
-            $stats['downloads_today']++;
-        }
-        
-        // Cette semaine
-        if ($last_view && strtotime($last_view) >= strtotime($week_ago)) {
-            $stats['views_week']++;
-        }
-        if ($last_download && strtotime($last_download) >= strtotime($week_ago)) {
-            $stats['downloads_week']++;
-        }
-        
-        // Ce mois
-        if ($last_view && strtotime($last_view) >= strtotime($month_ago)) {
-            $stats['views_month']++;
-        }
-        if ($last_download && strtotime($last_download) >= strtotime($month_ago)) {
-            $stats['downloads_month']++;
-        }
-    }
+    // Stats pour aujourd'hui, cette semaine, ce mois - VERSION CORRIGÉE
+    $table_name = $wpdb->prefix . 'pdf_analytics_details';
+    $today_start = date('Y-m-d 00:00:00');
+    $week_start = date('Y-m-d 00:00:00', strtotime('-7 days'));
+    $month_start = date('Y-m-d 00:00:00', strtotime('-30 days'));
+
+    // Aujourd'hui
+    $stats['views_today'] = $wpdb->get_var("
+        SELECT COUNT(*) FROM $table_name 
+        WHERE action_type = 'view' AND created_at >= '$today_start'
+    ");
+    $stats['downloads_today'] = $wpdb->get_var("
+        SELECT COUNT(*) FROM $table_name 
+        WHERE action_type = 'download' AND created_at >= '$today_start'
+    ");
+
+    // Cette semaine
+    $stats['views_week'] = $wpdb->get_var("
+        SELECT COUNT(*) FROM $table_name 
+        WHERE action_type = 'view' AND created_at >= '$week_start'
+    ");
+    $stats['downloads_week'] = $wpdb->get_var("
+        SELECT COUNT(*) FROM $table_name 
+        WHERE action_type = 'download' AND created_at >= '$week_start'
+    ");
+
+    // Ce mois
+    $stats['views_month'] = $wpdb->get_var("
+        SELECT COUNT(*) FROM $table_name 
+        WHERE action_type = 'view' AND created_at >= '$month_start'
+    ");
+    $stats['downloads_month'] = $wpdb->get_var("
+        SELECT COUNT(*) FROM $table_name 
+        WHERE action_type = 'download' AND created_at >= '$month_start'
+    ");
     
     return $stats;
 }
@@ -746,4 +748,3 @@ function save_pdf_config($post_id) {
         delete_post_meta($post_id, 'pdf_last_download');
     }
 }
-?>

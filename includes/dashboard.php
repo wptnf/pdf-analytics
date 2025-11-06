@@ -11,7 +11,7 @@ function pdf_analytics_dashboard_menu() {
     add_menu_page(
         __('PDF Analytics', 'pdf-analytics'),
         __('PDF Analytics', 'pdf-analytics'),
-        'read',
+        'manage_options',
         'pdf-analytics-dashboard',
         'pdf_analytics_dashboard_page',
         'dashicons-chart-line',
@@ -23,7 +23,7 @@ function pdf_analytics_dashboard_menu() {
         'pdf-analytics-dashboard',
         __('Geographical Statistics', 'pdf-analytics'),
         __('Geolocation', 'pdf-analytics'),
-        'read',
+        'manage_options',
         'pdf-analytics-geo',
         'pdf_analytics_geo_page'
     );
@@ -37,7 +37,17 @@ function pdf_analytics_dashboard_styles($hook) {
         return;
     }
     
+    // Charger jQuery (nécessaire pour Chart.js dans certains cas)
+    wp_enqueue_script('jquery');
+    
+    // Charger Chart.js depuis le CDN
     wp_enqueue_script('chartjs', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', array(), '4.4.0', true);
+    
+    // Ajouter un CSS de base pour les graphiques
+    wp_add_inline_style('wp-admin', '
+        .chart-container { position: relative; height: 300px; }
+        .chart-container-small { position: relative; height: 250px; }
+    ');
 }
 
 // Page du dashboard principal
@@ -473,8 +483,8 @@ function pdf_analytics_dashboard_page() {
                                 <td style="text-align: center; font-size: 12px; color: #666;">
                                     <?php 
                                     $last_activity = max(
-                                        strtotime($post['last_view']),
-                                        strtotime($post['last_download'])
+                                        strtotime($post['last_view'] ?? ''),
+                                        strtotime($post['last_download'] ?? '')
                                     );
                                     if ($last_activity > 0) {
                                         echo date('d/m/Y', $last_activity) . '<br>';
@@ -495,88 +505,94 @@ function pdf_analytics_dashboard_page() {
         </div>
         
         <script>
-            // Données pour le graphique
-            const ctx = document.getElementById('performanceChart').getContext('2d');
-            
-            const chartData = {
-                labels: ['<?php _e('Mon', 'pdf-analytics'); ?>', '<?php _e('Tue', 'pdf-analytics'); ?>', '<?php _e('Wed', 'pdf-analytics'); ?>', '<?php _e('Thu', 'pdf-analytics'); ?>', '<?php _e('Fri', 'pdf-analytics'); ?>', '<?php _e('Sat', 'pdf-analytics'); ?>', '<?php _e('Sun', 'pdf-analytics'); ?>'],
-                datasets: [
-                    {
-                        label: '<?php _e('Views', 'pdf-analytics'); ?>',
-                        data: [12, 19, 15, 25, 22, 18, 24],
-                        borderColor: '#044229',
-                        backgroundColor: 'rgba(4, 66, 41, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    },
-                    {
-                        label: '<?php _e('Downloads', 'pdf-analytics'); ?>',
-                        data: [8, 11, 9, 15, 13, 11, 16],
-                        borderColor: '#F2CFB3',
-                        backgroundColor: 'rgba(242, 207, 179, 0.2)',
-                        tension: 0.4,
-                        fill: true
-                    }
-                ]
-            };
-            
-            const performanceChart = new Chart(ctx, {
-                type: 'line',
-                data: chartData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20,
-                                font: {
-                                    size: 13,
+            // Vérifier que Chart.js est chargé
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js non chargé');
+                document.getElementById('performanceChart').innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">📊 <?php _e('Chart.js not loaded - waiting for data...', 'pdf-analytics'); ?></div>';
+            } else {
+                // Données pour le graphique
+                const ctx = document.getElementById('performanceChart').getContext('2d');
+                
+                const chartData = {
+                    labels: ['<?php _e('Mon', 'pdf-analytics'); ?>', '<?php _e('Tue', 'pdf-analytics'); ?>', '<?php _e('Wed', 'pdf-analytics'); ?>', '<?php _e('Thu', 'pdf-analytics'); ?>', '<?php _e('Fri', 'pdf-analytics'); ?>', '<?php _e('Sat', 'pdf-analytics'); ?>', '<?php _e('Sun', 'pdf-analytics'); ?>'],
+                    datasets: [
+                        {
+                            label: '<?php _e('Views', 'pdf-analytics'); ?>',
+                            data: [0, 0, 0, 0, 0, 0, 0],
+                            borderColor: '#044229',
+                            backgroundColor: 'rgba(4, 66, 41, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '<?php _e('Downloads', 'pdf-analytics'); ?>',
+                            data: [0, 0, 0, 0, 0, 0, 0],
+                            borderColor: '#F2CFB3',
+                            backgroundColor: 'rgba(242, 207, 179, 0.2)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                };
+                
+                const performanceChart = new Chart(ctx, {
+                    type: 'line',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    font: {
+                                        size: 13,
+                                        weight: '600'
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                cornerRadius: 8,
+                                titleFont: {
+                                    size: 14,
                                     weight: '600'
+                                },
+                                bodyFont: {
+                                    size: 13
                                 }
                             }
                         },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            cornerRadius: 8,
-                            titleFont: {
-                                size: 14,
-                                weight: '600'
-                            },
-                            bodyFont: {
-                                size: 13
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            ticks: {
-                                font: {
-                                    size: 12
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    }
                                 }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
                             },
-                            ticks: {
-                                font: {
-                                    size: 12
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
             
             // Fonctions de filtrage
             function updateChart(period) {
@@ -900,7 +916,7 @@ function pdf_analytics_geo_page() {
             <?php if (!empty($geo_stats['browsers'])) : ?>
             document.addEventListener('DOMContentLoaded', function() {
                 const browserCtx = document.getElementById('browserChart');
-                if (browserCtx) {
+                if (browserCtx && typeof Chart !== 'undefined') {
                     new Chart(browserCtx, {
                         type: 'doughnut',
                         data: {
@@ -924,6 +940,8 @@ function pdf_analytics_geo_page() {
                             }
                         }
                     });
+                } else if (browserCtx) {
+                    browserCtx.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">📊 <?php _e('Chart not available', 'pdf-analytics'); ?></div>';
                 }
             });
             <?php endif; ?>
@@ -932,7 +950,7 @@ function pdf_analytics_geo_page() {
             <?php if (!empty($geo_stats['os'])) : ?>
             document.addEventListener('DOMContentLoaded', function() {
                 const osCtx = document.getElementById('osChart');
-                if (osCtx) {
+                if (osCtx && typeof Chart !== 'undefined') {
                     new Chart(osCtx, {
                         type: 'doughnut',
                         data: {
@@ -956,6 +974,8 @@ function pdf_analytics_geo_page() {
                             }
                         }
                     });
+                } else if (osCtx) {
+                    osCtx.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">📊 <?php _e('Chart not available', 'pdf-analytics'); ?></div>';
                 }
             });
             <?php endif; ?>
